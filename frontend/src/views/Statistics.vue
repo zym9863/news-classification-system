@@ -438,20 +438,34 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  border-radius: 8px;
 }
 
 .overview-cards {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  padding: 0 5px;
 }
 
 .overview-card {
   height: 120px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.overview-card:hover {
+  transform: translateY(-4px);
+  border-color: #409eff;
+  box-shadow: 0 8px 25px rgba(64, 158, 255, 0.15);
 }
 
 .card-content {
   display: flex;
   align-items: center;
   height: 100%;
+  padding: 8px 0;
+  gap: 12px; /* 添加间距 */
 }
 
 .card-icon {
@@ -461,9 +475,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 16px;
   font-size: 24px;
   color: white;
+  flex-shrink: 0; /* 防止图标被压缩 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.card-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .card-icon.total {
@@ -482,24 +503,49 @@ onMounted(() => {
   background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 }
 
+.card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  min-width: 0; /* 防止内容溢出 */
+}
+
 .card-number {
   font-size: 28px;
   font-weight: 600;
   color: #303133;
   margin-bottom: 4px;
+  line-height: 1.2;
 }
 
 .card-label {
   font-size: 14px;
   color: #909399;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 4px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .charts-row {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  padding: 0 5px;
 }
 
 .chart-card {
   height: 400px;
+  transition: all 0.3s ease;
+}
+
+.chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .chart-container {
@@ -507,7 +553,14 @@ onMounted(() => {
 }
 
 .table-card {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  padding: 0 5px;
+  transition: all 0.3s ease;
+}
+
+.table-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
@@ -586,5 +639,118 @@ onMounted(() => {
   color: #909399;
   text-align: center;
   margin-top: 4px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .statistics-container {
+    padding: 10px;
+  }
+  
+  .overview-cards .el-col {
+    margin-bottom: 15px;
+  }
+  
+  .card-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  
+  .card-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+  
+  .card-number {
+    font-size: 24px;
+  }
+  
+  .card-label {
+    font-size: 12px;
+  }
+  
+  .chart-card {
+    height: 300px;
+  }
+  
+  .chart-container {
+    height: 220px;
+  }
+}
+
+@media (max-width: 992px) {
+  .charts-row .el-col {
+    margin-bottom: 20px;
+  }
+}
+
+/* 提升可访问性 */
+.card-content:focus-within {
+  outline: 2px solid #409eff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 动画效果 */
+.overview-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.overview-card:nth-child(1) { animation-delay: 0.1s; }
+.overview-card:nth-child(2) { animation-delay: 0.2s; }
+.overview-card:nth-child(3) { animation-delay: 0.3s; }
+.overview-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 优化文本显示 */
+.card-number {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* 卡片内容对齐优化 */
+.card-info {
+  text-align: left;
+}
+
+.card-info .card-number,
+.card-info .card-label {
+  display: block;
+  width: 100%;
+}
+
+/* 改进悬停效果 */
+.overview-card:hover .card-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.overview-card:hover .card-number {
+  animation-play-state: paused;
+}
+
+.overview-card:hover .card-label {
+  color: #606266;
+  font-weight: 600;
 }
 </style>
