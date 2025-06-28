@@ -54,9 +54,7 @@
           </el-form-item>
           <el-form-item label="AI模型">
             <el-select v-model="generateForm.model" placeholder="选择AI模型">
-              <el-option label="OpenAI Large" value="openai-large" />
-              <el-option label="OpenAI Medium" value="openai-medium" />
-              <el-option label="Claude" value="claude" />
+              <el-option label="GPT 4.1" value="openai-large" />
             </el-select>
           </el-form-item>
           <el-form-item>
