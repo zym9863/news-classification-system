@@ -48,7 +48,7 @@
               <el-icon><SuccessFilled /></el-icon>
             </div>
             <div class="card-info">
-              <div class="card-number">95%</div>
+              <div class="card-number">{{ statsData?.accuracy || 0 }}%</div>
               <div class="card-label">准确率</div>
             </div>
           </div>
@@ -130,6 +130,53 @@
         <el-table-column prop="description" label="描述" />
       </el-table>
     </el-card>
+
+    <!-- 准确率详细信息 -->
+    <el-card class="accuracy-card" shadow="hover" v-if="accuracyData">
+      <template #header>
+        <div class="card-header">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>准确率详细分析</span>
+        </div>
+      </template>
+      <el-row :gutter="20">
+        <el-col :span="8">
+          <div class="accuracy-summary">
+            <div class="summary-item">
+              <span class="label">总体准确率：</span>
+              <span class="value">{{ accuracyData.overall_accuracy }}%</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">总比较次数：</span>
+              <span class="value">{{ accuracyData.total_comparisons }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">正确预测：</span>
+              <span class="value">{{ accuracyData.correct_predictions }}</span>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="16">
+          <div class="category-accuracy">
+            <h4>各分类准确率</h4>
+            <el-row :gutter="10">
+              <el-col :span="8" v-for="(data, category) in accuracyData.category_accuracy" :key="category">
+                <div class="category-accuracy-item">
+                  <div class="category-name">{{ category }}</div>
+                  <el-progress 
+                    :percentage="data.accuracy" 
+                    :stroke-width="6"
+                    :show-text="true"
+                    :format="() => `${data.accuracy}%`"
+                  />
+                  <div class="category-stats">{{ data.correct }}/{{ data.total }}</div>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+        </el-col>
+      </el-row>
+    </el-card>
   </div>
 </template>
 
@@ -137,11 +184,12 @@
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
-import { getStats, clearHistory } from '../services/api'
+import { getStats, clearHistory, getAccuracyDetails } from '../services/api'
 
 const pieChartRef = ref<HTMLElement>()
 const barChartRef = ref<HTMLElement>()
 const statsData = ref(null)
+const accuracyData = ref(null)
 const loading = ref(false)
 
 let pieChart: echarts.ECharts | null = null
@@ -334,8 +382,12 @@ const updateCharts = () => {
 const refreshData = async () => {
   loading.value = true
   try {
-    const response = await getStats()
-    statsData.value = response
+    const [statsResponse, accuracyResponse] = await Promise.all([
+      getStats(),
+      getAccuracyDetails()
+    ])
+    statsData.value = statsResponse
+    accuracyData.value = accuracyResponse
     updateCharts()
     ElMessage.success('数据刷新成功')
   } catch (error) {
@@ -486,5 +538,53 @@ onMounted(() => {
 
 .trend-stable {
   color: #909399;
+}
+
+.accuracy-card {
+  margin-top: 20px;
+}
+
+.accuracy-summary {
+  background-color: #f5f7fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.summary-item {
+  margin-bottom: 12px;
+}
+
+.label {
+  font-weight: 500;
+  color: #606266;
+}
+
+.value {
+  font-weight: 600;
+  color: #303133;
+}
+
+.category-accuracy {
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.category-accuracy-item {
+  margin-bottom: 16px;
+}
+
+.category-name {
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 8px;
+}
+
+.category-stats {
+  font-size: 12px;
+  color: #909399;
+  text-align: center;
+  margin-top: 4px;
 }
 </style>

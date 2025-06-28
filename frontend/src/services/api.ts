@@ -48,6 +48,12 @@ export const analyzeContent = async (text: string) => {
   return response.data
 }
 
+// 获取准确率详细信息
+export const getAccuracyDetails = async () => {
+  const response = await api.get('/accuracy')
+  return response.data
+}
+
 // 清除历史记录
 export const clearHistory = async () => {
   const response = await api.delete('/history/clear')

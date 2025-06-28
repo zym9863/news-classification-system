@@ -51,6 +51,7 @@ categories = {0: '教育', 1: '科技', 2: '社会', 3: '时政', 4: '财经', 5
 # 数据存储文件路径
 HISTORY_FILE = "data/classification_history.json"
 STATS_FILE = "data/classification_stats.json"
+ACCURACY_FILE = "data/accuracy_records.json"
 
 # 确保数据目录存在
 os.makedirs("data", exist_ok=True)
@@ -81,6 +82,56 @@ def update_stats(category):
     stats[category] = stats.get(category, 0) + 1
     save_stats(stats)
     return stats
+
+# 准确率记录相关函数
+def load_accuracy_records():
+    """加载准确率记录"""
+    if os.path.exists(ACCURACY_FILE):
+        with open(ACCURACY_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+def save_accuracy_records(records):
+    """保存准确率记录"""
+    with open(ACCURACY_FILE, 'w', encoding='utf-8') as f:
+        json.dump(records, f, ensure_ascii=False, indent=2)
+
+def get_ai_classification(text):
+    """使用AI获取文本分类作为标准答案"""
+    categories_list = "教育、科技、社会、时政、财经、房产、家居"
+    prompt = f"""请对以下新闻文本进行分类，只从这些类别中选择一个：{categories_list}
+
+新闻内容：{text}
+
+请只返回分类名称，不要其他内容。"""
+    
+    try:
+        ai_result = generate_ai_text_sync(prompt, "openai-large")
+        # 清理AI返回结果，提取分类名称
+        ai_category = ai_result.strip().replace('"', '').replace('。', '').replace('：', '').replace(':', '')
+        
+        # 验证分类是否在预定义列表中
+        valid_categories = ['教育', '科技', '社会', '时政', '财经', '房产', '家居']
+        for category in valid_categories:
+            if category in ai_category:
+                return category
+        
+        # 如果没有找到匹配的分类，返回None
+        return None
+    except Exception as e:
+        print(f"AI分类失败: {str(e)}")
+        return None
+
+def calculate_accuracy():
+    """计算当前模型的准确率"""
+    records = load_accuracy_records()
+    if not records:
+        return 0.0
+    
+    correct_count = sum(1 for record in records if record['model_prediction'] == record['ai_standard'])
+    total_count = len(records)
+    
+    return round((correct_count / total_count) * 100, 2) if total_count > 0 else 0.0
 
 # Pollinations AI集成
 async def generate_ai_text(prompt, model="openai-large"):
@@ -175,6 +226,15 @@ def classify():
 
     # 调用预测函数
     predicted_category = predict_newkind(text, tokenizer, model)
+    
+    # 获取AI分类结果作为标准答案（异步进行，不影响用户体验）
+    ai_category = None
+    try:
+        # 只对较短的文本进行AI验证（避免超时）
+        if len(text) < 1000:
+            ai_category = get_ai_classification(text)
+    except Exception as e:
+        print(f"AI分类验证失败: {str(e)}")
 
     # 保存到历史记录
     history = load_history()
@@ -183,20 +243,40 @@ def classify():
         "text": text,
         "category": predicted_category,
         "timestamp": datetime.now().isoformat(),
-        "text_length": len(text)
+        "text_length": len(text),
+        "ai_standard": ai_category  # 添加AI标准答案
     }
     history.append(record)
     save_history(history)
 
+    # 如果获得了AI分类结果，保存到准确率记录中
+    if ai_category:
+        accuracy_records = load_accuracy_records()
+        accuracy_record = {
+            "id": len(accuracy_records) + 1,
+            "text": text[:200] + "..." if len(text) > 200 else text,  # 只保存前200字符
+            "model_prediction": predicted_category,
+            "ai_standard": ai_category,
+            "is_correct": predicted_category == ai_category,
+            "timestamp": datetime.now().isoformat()
+        }
+        accuracy_records.append(accuracy_record)
+        save_accuracy_records(accuracy_records)
+
     # 更新统计数据
     stats = update_stats(predicted_category)
+
+    # 计算当前准确率
+    current_accuracy = calculate_accuracy()
 
     # 返回预测结果
     return jsonify({
         "category": predicted_category,
         "confidence": "高",  # 可以后续添加置信度计算
         "record_id": record["id"],
-        "stats": stats
+        "stats": stats,
+        "ai_standard": ai_category,
+        "accuracy": current_accuracy
     })
 
 # 获取分类统计数据
@@ -210,10 +290,14 @@ def get_stats():
     for category, count in stats.items():
         percentages[category] = round((count / total * 100) if total > 0 else 0, 2)
 
+    # 计算准确率
+    accuracy = calculate_accuracy()
+
     return jsonify({
         "stats": stats,
         "percentages": percentages,
-        "total": total
+        "total": total,
+        "accuracy": accuracy
     })
 
 # 获取历史记录
@@ -311,9 +395,43 @@ def clear_history():
     try:
         save_history([])
         save_stats({category: 0 for category in categories.values()})
-        return jsonify({"message": "历史记录已清除"})
+        save_accuracy_records([])  # 同时清除准确率记录
+        return jsonify({"message": "历史记录和统计数据已清除"})
     except Exception as e:
         return jsonify({"error": f"清除失败: {str(e)}"}), 500
+
+# 获取准确率详细信息
+@app.route('/accuracy', methods=['GET'])
+def get_accuracy_details():
+    """获取准确率详细信息"""
+    records = load_accuracy_records()
+    accuracy = calculate_accuracy()
+    
+    # 统计正确和错误的数量
+    correct_count = sum(1 for record in records if record['is_correct'])
+    total_count = len(records)
+    
+    # 按分类统计准确率
+    category_accuracy = {}
+    for category in categories.values():
+        category_records = [r for r in records if r['model_prediction'] == category]
+        if category_records:
+            correct_in_category = sum(1 for r in category_records if r['is_correct'])
+            category_accuracy[category] = {
+                'total': len(category_records),
+                'correct': correct_in_category,
+                'accuracy': round((correct_in_category / len(category_records)) * 100, 2)
+            }
+        else:
+            category_accuracy[category] = {'total': 0, 'correct': 0, 'accuracy': 0}
+    
+    return jsonify({
+        "overall_accuracy": accuracy,
+        "total_comparisons": total_count,
+        "correct_predictions": correct_count,
+        "category_accuracy": category_accuracy,
+        "recent_records": records[-10:] if len(records) > 10 else records  # 最近10条记录
+    })
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
