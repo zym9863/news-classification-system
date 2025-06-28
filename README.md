@@ -1,3 +1,5 @@
+[English Version](README_EN.md) | [中文文档](README.md)
+
 # 智能新闻分类系统
 
 基于深度学习和AI技术的新闻自动分类系统，集成数据可视化和智能分析功能。
