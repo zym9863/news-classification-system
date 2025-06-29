@@ -9,7 +9,7 @@
               <el-icon><Document /></el-icon>
             </div>
             <div class="card-info">
-              <div class="card-number">{{ statsData?.total || 0 }}</div>
+              <div class="card-number">{{ statsData?.total ?? 0 }}</div>
               <div class="card-label">总分类数</div>
             </div>
           </div>
@@ -48,7 +48,7 @@
               <el-icon><SuccessFilled /></el-icon>
             </div>
             <div class="card-info">
-              <div class="card-number">{{ statsData?.accuracy || 0 }}%</div>
+              <div class="card-number">{{ statsData?.accuracy ?? 0 }}%</div>
               <div class="card-label">准确率</div>
             </div>
           </div>
@@ -186,21 +186,39 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
 import { getStats, clearHistory, getAccuracyDetails } from '../services/api'
 
+// TypeScript interfaces for statistics data
+interface CategoryStats {
+  [category: string]: number;
+}
+interface Percentages {
+  [category: string]: number;
+}
+interface StatsData {
+  total: number;
+  accuracy: number;
+  overall_accuracy?: number;
+  total_comparisons?: number;
+  correct_predictions?: number;
+  category_accuracy?: { [category: string]: number };
+  stats: CategoryStats;
+  percentages: Percentages;
+}
+
 const pieChartRef = ref<HTMLElement>()
 const barChartRef = ref<HTMLElement>()
-const statsData = ref(null)
-const accuracyData = ref(null)
+const statsData = ref<StatsData | null>(null)
+const accuracyData = ref<any>(null)
 const loading = ref(false)
 
 let pieChart: echarts.ECharts | null = null
 let barChart: echarts.ECharts | null = null
 
-const categoryDescriptions = {
+const categoryDescriptions: { [key: string]: string } = {
   '教育': '教育相关新闻，包括教育政策、学校动态等',
   '科技': '科技创新、产品发布、技术发展等新闻',
   '社会': '社会民生、公共事务、社会现象等新闻',
   '时政': '政治新闻、政策解读、时事评论等',
-  '财经': '经济动态、金融市场、商业资讯等新闻',
+  '财经': '经济动向、金融市场、商业资讯等新闻',
   '房产': '房地产市场、政策变化、楼市动态等',
   '家居': '家居装修、生活用品、居家生活等新闻'
 }
@@ -213,18 +231,17 @@ const mostPopularCategory = computed(() => {
 })
 
 const tableData = computed(() => {
-  if (!statsData.value) return []
-  
+  if (!statsData.value || !statsData.value.stats) return []
   return Object.entries(statsData.value.stats).map(([category, count]) => ({
     category,
     count,
-    percentage: statsData.value.percentages[category] || 0,
+    percentage: statsData.value?.percentages?.[category] ?? 0,
     description: categoryDescriptions[category] || '暂无描述'
   }))
 })
 
 const getCategoryTagType = (category: string) => {
-  const types = {
+  const types: { [key: string]: string } = {
     '教育': 'primary',
     '科技': 'success',
     '社会': 'info',

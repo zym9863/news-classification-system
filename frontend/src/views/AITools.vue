@@ -81,17 +81,17 @@
           <el-card class="result-card" shadow="never">
             <div class="result-header">
               <el-tag type="success">生成完成</el-tag>
-              <el-button type="text" @click="copyToClipboard(generateResult.result)">
+              <el-button type="text" @click="copyToClipboard(generateResult?.result)">
                 <el-icon><CopyDocument /></el-icon>
                 复制
               </el-button>
             </div>
             <div class="result-content">
-              <pre class="generated-text">{{ generateResult.result }}</pre>
+              <pre class="generated-text">{{ generateResult?.result }}</pre>
             </div>
             <div class="result-footer">
-              <el-tag size="small">模型：{{ generateResult.model }}</el-tag>
-              <el-tag size="small" type="info">字数：{{ generateResult.result.length }}</el-tag>
+              <el-tag size="small">模型：{{ generateResult?.model }}</el-tag>
+              <el-tag size="small" type="info">字数：{{ generateResult?.result.length }}</el-tag>
             </div>
           </el-card>
         </div>
@@ -158,12 +158,12 @@
               <el-card class="result-card" shadow="never">
                 <template #header>
                   <span>智能摘要</span>
-                  <el-button type="text" @click="copyToClipboard(summaryResult.summary)">
+                  <el-button type="text" @click="copyToClipboard(summaryResult?.summary)">
                     <el-icon><CopyDocument /></el-icon>
                     复制
                   </el-button>
                 </template>
-                <div class="summary-text">{{ summaryResult.summary }}</div>
+                <div class="summary-text">{{ summaryResult?.summary }}</div>
                 <div class="summary-stats">
                   <el-progress 
                     :percentage="compressionRatio" 
@@ -171,8 +171,8 @@
                     :format="() => `压缩率 ${compressionRatio}%`"
                   />
                   <div class="stats-tags">
-                    <el-tag size="small">原文：{{ summaryResult.original_length }}字</el-tag>
-                    <el-tag size="small" type="success">摘要：{{ summaryResult.summary_length }}字</el-tag>
+                    <el-tag size="small">原文：{{ summaryResult?.original_length }}字</el-tag>
+                    <el-tag size="small" type="success">摘要：{{ summaryResult?.summary_length }}字</el-tag>
                   </div>
                 </div>
               </el-card>
@@ -228,16 +228,16 @@
           <el-card class="result-card analysis-card" shadow="never">
             <div class="analysis-header">
               <el-tag type="warning">AI深度分析</el-tag>
-              <el-button type="text" @click="copyToClipboard(analysisResult.analysis)">
+              <el-button type="text" @click="copyToClipboard(analysisResult?.analysis)">
                 <el-icon><CopyDocument /></el-icon>
                 复制分析
               </el-button>
             </div>
             <div class="analysis-content">
-              <pre class="analysis-text">{{ analysisResult.analysis }}</pre>
+              <pre class="analysis-text">{{ analysisResult?.analysis }}</pre>
             </div>
             <div class="analysis-footer">
-              <el-tag size="small">分析字数：{{ analysisResult.text_length }}</el-tag>
+              <el-tag size="small">分析字数：{{ analysisResult?.text_length }}</el-tag>
               <el-tag size="small" type="info">分析时间：{{ new Date().toLocaleString() }}</el-tag>
             </div>
           </el-card>
@@ -252,6 +252,22 @@ import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { generateAIText, generateSummary as apiGenerateSummary, analyzeContent as apiAnalyzeContent } from '../services/api'
 
+// TypeScript interfaces for AI tool results
+interface GenerateResult {
+  result: string;
+  model: string;
+}
+interface SummaryResult {
+  summary: string;
+  summary_length: number;
+  original_length: number;
+}
+interface AnalysisResult {
+  analysis: string;
+  text_length: number;
+  summary_length: number;
+}
+
 const activeTab = ref('generate')
 
 // 文本生成相关
@@ -260,21 +276,21 @@ const generateForm = reactive({
   model: 'openai-large'
 })
 const generateLoading = ref(false)
-const generateResult = ref(null)
+const generateResult = ref<GenerateResult | null>(null)
 
 // 智能摘要相关
 const summaryForm = reactive({
   text: ''
 })
 const summaryLoading = ref(false)
-const summaryResult = ref(null)
+const summaryResult = ref<SummaryResult | null>(null)
 
 // 内容分析相关
 const analysisForm = reactive({
   text: ''
 })
 const analysisLoading = ref(false)
-const analysisResult = ref(null)
+const analysisResult = ref<AnalysisResult | null>(null)
 
 const compressionRatio = computed(() => {
   if (!summaryResult.value) return 0
