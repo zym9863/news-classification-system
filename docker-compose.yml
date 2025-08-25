@@ -1,0 +1,28 @@
+# 新闻分类系统 Docker Compose 配置
+version: '3.8'
+
+services:
+  news-classifier:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: news-classification-system
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # 挂载数据文件（如果需要持久化模型）
+      - ./backend/models:/app/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: news-classifier-network

@@ -1,0 +1,41 @@
+# Docker忽略文件
+
+# Git相关
+.git
+.gitignore
+README.md
+
+# 前端开发文件
+frontend/node_modules
+frontend/dist
+frontend/.vite
+frontend/pnpm-lock.yaml
+
+# 后端开发文件
+backend/__pycache__
+backend/*.pyc
+backend/.pytest_cache
+backend/.coverage
+backend/venv
+backend/.venv
+
+# 开发工具
+.vscode
+.idea
+*.swp
+*.swo
+
+# 日志文件
+*.log
+
+# 临时文件
+.tmp
+.cache
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Docker相关
+.dockerignore
+docker-compose.override.yml
