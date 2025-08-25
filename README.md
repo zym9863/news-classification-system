@@ -1,3 +1,5 @@
+[English](README-EN.md) | [简体中文](README.md)
+
 # 新闻分类系统
 
 基于机器学习的中文新闻智能分类系统，支持7个类别的新闻自动分类：教育、科技、社会、时政、财经、房产、家居。
@@ -291,7 +293,7 @@ pnpm run test:e2e
 
 如有问题或建议，请通过以下方式联系：
 
-- 提交Issue：[GitHub Issues](https://github.com/your-username/news-classification-system/issues)
+- 提交Issue：[GitHub Issues](https://github.com/zym9863/news-classification-system/issues)
 
 ---
 
