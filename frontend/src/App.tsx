@@ -33,17 +33,6 @@ const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
-// 类别颜色映射
-const categoryColors: Record<NewsCategory, string> = {
-  '教育': 'blue',
-  '科技': 'green',
-  '社会': 'orange',
-  '时政': 'red',
-  '财经': 'purple',
-  '房产': 'cyan',
-  '家居': 'magenta',
-};
-
 function App() {
   const [inputText, setInputText] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -153,12 +142,13 @@ function App() {
   const renderHistoryItem = (item: NewsItem) => {
     if (item.isProcessing) {
       return (
-        <List.Item>
+        <List.Item className="processing-item">
           <div style={{ width: '100%' }}>
-            <div style={{ marginBottom: 8 }}>
-              <FileTextOutlined /> 正在分析: {item.text.substring(0, 50)}...
+            <div style={{ marginBottom: 12, fontSize: '15px' }}>
+              <FileTextOutlined style={{ marginRight: 8, color: '#667eea' }} /> 
+              正在分析: {item.text.substring(0, 50)}...
             </div>
-            <Progress percent={undefined} status="active" />
+            <Progress percent={undefined} status="active" strokeColor="#667eea" />
           </div>
         </List.Item>
       );
@@ -167,16 +157,19 @@ function App() {
     return (
       <List.Item>
         <div style={{ width: '100%' }}>
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: 12, fontSize: '15px' }}>
             <Text strong>原文：</Text>
-            <Text>{item.text}</Text>
+            <Text style={{ fontSize: '15px' }}>{item.text}</Text>
           </div>
           {item.predictedCategory && (
             <Space size="middle">
-              <Tag color={categoryColors[item.predictedCategory]} style={{ fontSize: '14px', padding: '4px 12px' }}>
+              <Tag 
+                data-category={item.predictedCategory}
+                style={{ fontSize: '14px', padding: '6px 16px' }}
+              >
                 {item.predictedCategory}
               </Tag>
-              <Text type="secondary">
+              <Text type="secondary" className="confidence-text">
                 置信度: {(item.confidence! * 100).toFixed(1)}%
               </Text>
             </Space>
@@ -188,8 +181,8 @@ function App() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
+      <Header style={{ background: 'transparent', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+        <Title level={2} style={{ margin: 0, color: '#ffffff' }}>
           📰 新闻分类系统
         </Title>
       </Header>
@@ -230,10 +223,14 @@ function App() {
         )}
 
         {/* 类别展示 */}
-        <Card title="支持的新闻类别" style={{ marginBottom: 24 }}>
+        <Card title="支持的新闻类别" style={{ marginBottom: 32 }}>
           <Space wrap>
             {categories.map(category => (
-              <Tag key={category} color={categoryColors[category]} style={{ fontSize: '14px', padding: '4px 12px' }}>
+              <Tag 
+                key={category} 
+                data-category={category}
+                style={{ fontSize: '14px', padding: '6px 16px' }}
+              >
                 {category}
               </Tag>
             ))}
@@ -241,8 +238,8 @@ function App() {
         </Card>
 
         {/* 输入区域 */}
-        <Card title="新闻文本分类" style={{ marginBottom: 24 }}>
-          <Space.Compact style={{ width: '100%', marginBottom: 16 }}>
+        <Card title="新闻文本分类" style={{ marginBottom: 32 }}>
+          <Space.Compact style={{ width: '100%', marginBottom: 20 }}>
             <TextArea
               placeholder="请输入新闻标题或内容，例如：教育部发布新的课程标准..."
               value={inputText}
@@ -250,7 +247,7 @@ function App() {
               rows={4}
               maxLength={1000}
               showCount
-              style={{ flex: 1 }}
+              style={{ flex: 1, minHeight: '120px' }}
               onPressEnter={(e) => {
                 if (e.ctrlKey || e.metaKey) {
                   handlePredict();
@@ -259,13 +256,14 @@ function App() {
             />
           </Space.Compact>
           
-          <Space>
+          <Space size="large">
             <Button
               type="primary"
               icon={<SendOutlined />}
               onClick={handlePredict}
               loading={isLoading}
               disabled={!inputText.trim()}
+              size="large"
             >
               开始分类
             </Button>
@@ -273,12 +271,13 @@ function App() {
               icon={<ClearOutlined />}
               onClick={handleClear}
               disabled={isLoading}
+              size="large"
             >
               清空
             </Button>
           </Space>
           
-          <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+          <Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0, fontSize: '14px' }}>
             提示：支持 Ctrl+Enter 快速提交
           </Paragraph>
         </Card>
@@ -298,17 +297,21 @@ function App() {
         {predictionHistory.length === 0 && (
           <Card>
             <Result
-              icon={<FileTextOutlined />}
+              icon={<FileTextOutlined className="welcome-icon" style={{ fontSize: '64px', color: '#667eea' }} />}
               title="欢迎使用新闻分类系统"
               subTitle="输入新闻文本，系统将自动识别其所属类别"
               extra={
                 <div>
-                  <Paragraph>
+                  <Paragraph style={{ fontSize: '16px', marginBottom: 24 }}>
                     本系统支持以下7个类别的中文新闻分类：
                   </Paragraph>
                   <Space wrap style={{ justifyContent: 'center' }}>
                     {categories.map(category => (
-                      <Tag key={category} color={categoryColors[category]} style={{ fontSize: '14px', padding: '4px 12px' }}>
+                      <Tag 
+                        key={category} 
+                        data-category={category}
+                        style={{ fontSize: '14px', padding: '6px 16px' }}
+                      >
                         {category}
                       </Tag>
                     ))}
@@ -320,7 +323,7 @@ function App() {
         )}
       </Content>
 
-      <Footer style={{ textAlign: 'center', color: '#666' }}>
+      <Footer style={{ textAlign: 'center', color: '#ffffff', fontWeight: '500' }}>
         新闻分类系统 ©2024 基于机器学习技术
       </Footer>
     </Layout>
