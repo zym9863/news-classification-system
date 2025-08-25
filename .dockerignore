@@ -9,7 +9,8 @@ README.md
 frontend/node_modules
 frontend/dist
 frontend/.vite
-frontend/pnpm-lock.yaml
+# 保留锁文件以确保可重复构建（供 Docker 构建阶段使用）
+# 注意：不要忽略 pnpm-lock.yaml
 
 # 后端开发文件
 backend/__pycache__

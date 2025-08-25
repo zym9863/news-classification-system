@@ -25,8 +25,9 @@ FROM python:3.12-slim AS backend
 WORKDIR /app
 
 # 安装系统依赖
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装uv包管理器
@@ -35,8 +36,8 @@ RUN pip install uv
 # 复制后端文件
 COPY backend/ ./
 
-# 使用uv安装Python依赖
-RUN uv pip install --system -r pyproject.toml
+# 使用 uv 从 pyproject 进行可编辑安装（与开发脚本一致）
+RUN uv pip install --system -e .
 
 # 从前端构建阶段复制静态文件
 COPY --from=frontend-builder /frontend/dist ./static
