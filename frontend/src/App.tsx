@@ -2,7 +2,7 @@
  * 新闻分类系统主应用组件
  * 提供新闻文本分类的用户界面
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Layout,
   Typography,
@@ -13,7 +13,6 @@ import {
   Progress,
   Tag,
   Space,
-  Divider,
   List,
   message,
   Statistic,
