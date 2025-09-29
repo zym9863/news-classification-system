@@ -7,6 +7,8 @@ import numpy as np
 import jieba
 import pickle
 import os
+import torch
+from safetensors.torch import save_file, load_file
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.model_selection import train_test_split
@@ -35,8 +37,11 @@ class NewsClassifier:
         self.vectorizer = None
         # 训练后从模型类目对齐，初始化仅作占位
         self.categories = ["教育", "科技", "社会", "时政", "财经", "房产", "家居"]
-        self.model_path = "models/news_classifier.pkl"
-        self.vectorizer_path = "models/vectorizer.pkl"
+        self.model_path = "models/news_classifier.safetensors"
+        self.vectorizer_path = "models/vectorizer.safetensors"
+        # 兼容旧的 pkl 文件路径
+        self.legacy_model_path = "models/news_classifier.pkl"
+        self.legacy_vectorizer_path = "models/vectorizer.pkl"
 
         # 可选的显式列名（优先）
         self._text_column = text_column
@@ -222,42 +227,122 @@ class NewsClassifier:
         }
     
     def save_model(self) -> None:
-        """保存训练好的模型和向量化器"""
+        """
+        保存训练好的模型和向量化器
+        使用混合方式：模型核心参数用 safetensors，复杂对象用 pickle
+        """
         if self.model is not None and self.vectorizer is not None:
-            with open(self.model_path, 'wb') as f:
-                pickle.dump(self.model, f)
-            
-            with open(self.vectorizer_path, 'wb') as f:
+            # 保存 sklearn 模型的核心参数到 safetensors
+            model_tensors = {
+                "feature_log_prob_": torch.from_numpy(self.model.feature_log_prob_).float(),
+                "class_log_prior_": torch.from_numpy(self.model.class_log_prior_).float(),
+                "class_count_": torch.from_numpy(self.model.class_count_).float(),
+                "feature_count_": torch.from_numpy(self.model.feature_count_).float(),
+                "alpha": torch.tensor(self.model.alpha).float()
+            }
+
+            # 保存模型张量参数
+            save_file(model_tensors, self.model_path)
+
+            # 保存类别信息到单独的文件
+            model_metadata = {
+                "classes_": self.model.classes_.tolist(),
+                "n_features_in_": self.model.n_features_in_ if hasattr(self.model, 'n_features_in_') else None
+            }
+
+            with open(self.model_path.replace('.safetensors', '_metadata.pkl'), 'wb') as f:
+                pickle.dump(model_metadata, f)
+
+            # 向量化器仍使用 pickle 保存（因为包含复杂的字典结构）
+            with open(self.vectorizer_path.replace('.safetensors', '.pkl'), 'wb') as f:
                 pickle.dump(self.vectorizer, f)
-            
-            print("模型保存成功")
+
+            print("模型保存成功（safetensors 格式）")
         else:
             print("没有训练好的模型可以保存")
     
     def load_model(self) -> bool:
         """
         加载训练好的模型
-        
+        支持从 safetensors 格式加载，同时兼容旧的 pkl 格式
+
         Returns:
             是否加载成功
         """
         try:
-            if os.path.exists(self.model_path) and os.path.exists(self.vectorizer_path):
-                with open(self.model_path, 'rb') as f:
-                    self.model = pickle.load(f)
-                
-                with open(self.vectorizer_path, 'rb') as f:
+            # 优先尝试加载 safetensors 格式
+            metadata_path = self.model_path.replace('.safetensors', '_metadata.pkl')
+            vectorizer_pkl_path = self.vectorizer_path.replace('.safetensors', '.pkl')
+
+            if os.path.exists(self.model_path) and os.path.exists(metadata_path) and os.path.exists(vectorizer_pkl_path):
+                # 加载模型张量参数
+                model_tensors = load_file(self.model_path)
+
+                # 加载元数据
+                with open(metadata_path, 'rb') as f:
+                    model_metadata = pickle.load(f)
+
+                # 重建 MultinomialNB 模型
+                self.model = MultinomialNB(alpha=model_tensors['alpha'].item())
+                self.model.feature_log_prob_ = model_tensors['feature_log_prob_'].numpy()
+                self.model.class_log_prior_ = model_tensors['class_log_prior_'].numpy()
+                self.model.class_count_ = model_tensors['class_count_'].numpy()
+                self.model.feature_count_ = model_tensors['feature_count_'].numpy()
+                self.model.classes_ = np.array(model_metadata['classes_'])
+
+                if model_metadata.get('n_features_in_'):
+                    self.model.n_features_in_ = model_metadata['n_features_in_']
+
+                # 加载向量化器
+                with open(vectorizer_pkl_path, 'rb') as f:
                     self.vectorizer = pickle.load(f)
-                
-                print("模型加载成功")
+
+                # 更新类别列表
+                self.categories = list(self.model.classes_)
+
+                print("模型加载成功（safetensors 格式）")
+                return True
+
+            # 如果 safetensors 文件不存在，尝试加载旧的 pkl 格式
+            elif os.path.exists(self.legacy_model_path) and os.path.exists(self.legacy_vectorizer_path):
+                with open(self.legacy_model_path, 'rb') as f:
+                    self.model = pickle.load(f)
+
+                with open(self.legacy_vectorizer_path, 'rb') as f:
+                    self.vectorizer = pickle.load(f)
+
+                # 更新类别列表
+                self.categories = list(self.model.classes_) if hasattr(self.model, 'classes_') else self.categories
+
+                print("模型加载成功（pkl 格式）")
+                # 转换为新格式
+                print("正在将模型转换为 safetensors 格式...")
+                self.save_model()
                 return True
             else:
                 print("模型文件不存在，需要先训练模型")
                 # 自动训练模型
                 self.train_model()
                 return True
+
         except Exception as e:
             print(f"模型加载失败: {e}")
+            # 如果 safetensors 加载失败，尝试 pkl 格式
+            try:
+                if os.path.exists(self.legacy_model_path) and os.path.exists(self.legacy_vectorizer_path):
+                    with open(self.legacy_model_path, 'rb') as f:
+                        self.model = pickle.load(f)
+
+                    with open(self.legacy_vectorizer_path, 'rb') as f:
+                        self.vectorizer = pickle.load(f)
+
+                    # 更新类别列表
+                    self.categories = list(self.model.classes_) if hasattr(self.model, 'classes_') else self.categories
+
+                    print("回退到 pkl 格式加载成功")
+                    return True
+            except Exception as e2:
+                print(f"pkl 格式也加载失败: {e2}")
             return False
     
     def predict(self, text: str) -> Dict[str, Any]:
