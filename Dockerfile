@@ -42,7 +42,16 @@ RUN uv pip install --system -e .
 # 从前端构建阶段复制静态文件
 COPY --from=frontend-builder /frontend/dist ./static
 
-# 创建必要的目录
+# 复制训练好的模型文件
+COPY backend/models/news_classifier.safetensors ./models/
+COPY backend/models/news_classifier_metadata.pkl ./models/
+COPY backend/models/vectorizer.pkl ./models/
+
+# 复制启动脚本并设置权限
+COPY backend/start.sh ./
+RUN chmod +x start.sh
+
+# 创建必要的目录（虽然已有模型，但保留以防其他需要）
 RUN mkdir -p models
 
 # 暴露端口
@@ -53,4 +62,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
 # 启动命令
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["./start.sh"]
