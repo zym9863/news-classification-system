@@ -205,9 +205,9 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 # =====================
 # 路由
 # =====================
-@app.get("/")
-async def root() -> Dict[str, Any]:
-    """根路径，返回API信息。"""
+@app.get("/api/health")
+async def health_check() -> Dict[str, Any]:
+    """健康检查端点。"""
     return {"message": "新闻分类系统API", "version": "1.0.0", "status": "运行中"}
 
 

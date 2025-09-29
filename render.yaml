@@ -1,0 +1,20 @@
+services:
+  # Web 服务配置
+  - type: web
+    name: news-classifier
+    runtime: docker
+    # 健康检查路径
+    healthCheckPath: /api/health
+    # 环境变量
+    envVars:
+      - key: PORT
+        value: 8000
+      # 可选：设置允许的 CORS 来源（生产环境建议设置）
+      # - key: ALLOWED_ORIGINS
+      #   value: https://your-domain.com
+    # 扩展设置
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+    # 资源配置（根据你的 Render 计划调整）
+    plan: free  # 或 starter, standard, pro
